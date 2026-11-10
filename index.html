@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Faizan Farz Uloom Book</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,6 +29,92 @@
   body.sidebar-collapsed #sidebar { transform: translateX(-100%); }
   body.sidebar-collapsed #readerMain { padding-left: 0; }
   body.sidebar-collapsed #audioDock { left: 0; }
+  #sidebarScrim { display: none; }
+  @media (min-width: 768px) and (max-width: 1023px) {
+    #sidebar { width: 17rem; }
+    #readerMain { padding-left: 17rem; }
+    #audioDock { left: 17rem; }
+    header.fixed { gap: .5rem; padding-left: .75rem; padding-right: .75rem; }
+    #voiceSelect { width: 14rem; }
+    #themeBtn { padding-left: .75rem; padding-right: .75rem; }
+  }
+  @media (max-width: 767px) {
+    body { overflow-x: hidden; }
+    header.fixed {
+      height: auto;
+      min-height: 0;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "brand theme" "voice voice";
+      gap: .5rem .625rem;
+      padding: .5rem .75rem;
+    }
+    header > div:first-child { grid-area: brand; gap: .5rem; }
+    header > div:nth-child(2) { grid-area: voice; width: 100%; min-width: 0; }
+    header > div:nth-child(3) { grid-area: theme; }
+    header .w-10.h-10 { width: 2.25rem; height: 2.25rem; }
+    header h1 { font-size: .9rem; }
+    #sidebarToggle, #themeBtn { min-height: 2.75rem; }
+    header > div:nth-child(2) select { width: 100%; min-width: 0; min-height: 2.75rem; }
+    #sidebar {
+      top: 0;
+      bottom: 0;
+      z-index: 60;
+      width: min(86vw, 21rem);
+      transform: translateX(-105%);
+      background-color: rgb(255 255 255 / .97);
+    }
+    .dark #sidebar { background-color: rgb(2 6 23 / .97); }
+    body.mobile-sidebar-open #sidebar { transform: translateX(0); }
+    #sidebarScrim {
+      position: fixed;
+      inset: 0;
+      z-index: 55;
+      border: 0;
+      background: rgb(15 23 42 / .45);
+      backdrop-filter: blur(2px);
+    }
+    body.mobile-sidebar-open #sidebarScrim { display: block; }
+    #readerMain { padding: 7.5rem 0 15rem; }
+    #reader { padding: 1.5rem .875rem; }
+    #notice { padding-left: .875rem; padding-right: .875rem; }
+    #reader > div:first-child { margin-bottom: 1.5rem; }
+    #reader h2 { font-size: clamp(1.65rem, 7vw, 2.25rem); line-height: 1.2; overflow-wrap: anywhere; }
+    #reader section { border-radius: 1.25rem; }
+    #reader section > div { padding: 1.25rem 1rem; }
+    #reader .para { gap: .5rem; margin-left: -.25rem; margin-right: -.25rem; padding: .5rem .25rem; }
+    #reader .para p { min-width: 0; font-size: 1.0625rem; line-height: 1.85; overflow-wrap: anywhere; }
+    #reader .spk { width: 2.75rem; height: 2.75rem; margin-top: .125rem; }
+    #reader > div:last-child { gap: .625rem; }
+    #reader > div:last-child button { min-width: 0; flex: 1; padding: .75rem .5rem; font-size: .8rem; }
+    #audioDock {
+      left: 0;
+      right: 0;
+      bottom: calc(.5rem + env(safe-area-inset-bottom));
+      padding: 0 .5rem;
+    }
+    #player { border-radius: 1.25rem; padding: .75rem; }
+    #player > .flex.items-center.gap-4 {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: .375rem .5rem;
+    }
+    #player > .flex.items-center.gap-4 > label {
+      grid-column: 1 / -1;
+      justify-self: end;
+      font-size: .8rem;
+    }
+    #player .flex.justify-between span:last-child { display: none; }
+    #player .ctl { width: 2.75rem; height: 2.75rem; }
+  }
+  @media (max-width: 380px) {
+    header.fixed { padding-left: .5rem; padding-right: .5rem; }
+    header h1 { font-size: .8rem; }
+    #themeBtn { gap: .35rem; padding: .5rem; font-size: .75rem; }
+    #themeBtn span { display: none; }
+    #reader { padding-left: .625rem; padding-right: .625rem; }
+    #reader .para p { font-size: 1rem; }
+    #player > .flex.items-center.gap-4 { grid-template-columns: auto minmax(0, 1fr); }
+  }
 </style>
 </head>
 <body class="font-ui bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-200 antialiased">
@@ -80,6 +166,7 @@
   </div>
   <nav id="chList" class="flex-1 overflow-y-auto px-3 py-2 space-y-1"></nav>
 </aside>
+<button id="sidebarScrim" type="button" aria-label="Close chapters sidebar"></button>
 
 <!-- Reader -->
 <main id="readerMain" class="pl-80 pt-16 pb-48">
@@ -179,19 +266,43 @@ function renderList() {
     }).join('') || '<p class="px-3 py-6 text-sm text-slate-500">No chapter matches your search.</p>';
 }
 $('#chSearch').oninput = renderList;
-$('#chList').onclick = e => { const b = e.target.closest('[data-ch]'); if (b) openChapter(+b.dataset.ch); };
+$('#chList').onclick = e => {
+  const b = e.target.closest('[data-ch]');
+  if (b) {
+    openChapter(+b.dataset.ch);
+    if (window.matchMedia('(max-width: 767px)').matches) setSidebarOpen(false);
+  }
+};
 
 const SEC = {
   q: {wrap:'px-9 py-7 bg-indigo-50/80 dark:bg-indigo-500/10', badge:'bg-gradient-to-r from-indigo-600 to-violet-600'},
   a: {wrap:'px-9 py-7', badge:'bg-gradient-to-r from-emerald-500 to-teal-500'},
   x: {wrap:'px-9 py-7', badge:'bg-gradient-to-r from-slate-600 to-slate-500'}
 };
-$('#sidebarToggle').onclick = () => {
-  const collapsed = document.body.classList.toggle('sidebar-collapsed');
-  const label = collapsed ? 'Open chapters sidebar' : 'Close chapters sidebar';
-  $('#sidebarToggle').setAttribute('aria-expanded', String(!collapsed));
-  $('#sidebarToggle').setAttribute('aria-label', label);
-  $('#sidebarToggle').title = label;
+const sidebarToggle = $('#sidebarToggle');
+const mobileSidebarQuery = window.matchMedia('(max-width: 767px)');
+function setSidebarOpen(open) {
+  document.body.classList.toggle('mobile-sidebar-open', mobileSidebarQuery.matches && open);
+  document.body.classList.toggle('sidebar-collapsed', !mobileSidebarQuery.matches && !open);
+  const label = open ? 'Close chapters sidebar' : 'Open chapters sidebar';
+  sidebarToggle.setAttribute('aria-expanded', String(open));
+  sidebarToggle.setAttribute('aria-label', label);
+  sidebarToggle.title = label;
+}
+setSidebarOpen(!mobileSidebarQuery.matches);
+let wasMobileSidebar = mobileSidebarQuery.matches;
+window.addEventListener('resize', () => {
+  if (wasMobileSidebar !== mobileSidebarQuery.matches) {
+    wasMobileSidebar = mobileSidebarQuery.matches;
+    setSidebarOpen(!wasMobileSidebar);
+  }
+});
+$('#sidebarScrim').onclick = () => setSidebarOpen(false);
+sidebarToggle.onclick = () => {
+  const open = mobileSidebarQuery.matches
+    ? !document.body.classList.contains('mobile-sidebar-open')
+    : document.body.classList.contains('sidebar-collapsed');
+  setSidebarOpen(open);
 };
 function tokenize(text) {
   const out = [], re = /\S+/g; let m;
